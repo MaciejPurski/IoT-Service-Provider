@@ -1,5 +1,6 @@
 import socket
-from PacketsTypes import packetsDict
+from CryptoCore import *
+from PacketsTypes import packetFactory
 
 class Connection:
 	def __init__(self, ip, port):
@@ -13,6 +14,28 @@ class Connection:
 	def packetRead(self, encrypted):
 		packetId = self.sock.recv(1)
 		bytesRcd = 0
-		packetLen = packetsDict[packetId].pLengthEncrypted if encrypted else packetsDict[packetId].pLength
-		while bytesRcd < packetLen:
-			pass
+		buffer = bytearray('')
+		packet = packetFactory(packetId)
+		pLength = packet.pLengthEncrypted if encrypted \
+										  else packet.pLength
+		while bytesRcd < pLength:
+			chunk = self.sock.recv(pLength - bytesRcd)
+			#TODO error check
+			buffer.append(chunk)
+
+		if encrypted:
+			packet.deserialize(decryptAES(buffer))
+		else:
+			packet.deserialize(buffer)
+
+		return packet
+
+
+	def packetSend(self, packet, encrypted):
+		if encrypted:
+			buffer = encryptAES(packet.serialize())
+		else:
+			buffer = packet.serialize()
+
+		self.sock.send(buffer)
+		#TODO error checking

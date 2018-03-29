@@ -17,13 +17,162 @@ class Packet:
 		self.pLengthEncrypted = (pLength / 16 + 1) * 6 # AES encrypted message length
 		self.pFormatString = pFormat
 
-packetsDict = { PacketType.ACK : Packet(PacketType.ACK, 1, ''),
-				  PacketType.NAK : Packet(PacketType.NAK, 1, ''),
-				  PacketType.EOT : Packet(PacketType.EOT, 0, ''),
-                  PacketType.CHALL : Packet(PacketType.CHALL, 8, ''),
-                  PacketType.CHALL_RESP : Packet(PacketType.CHALL_RESP, 256, ''),
-                  PacketType.KEY : Packet(PacketType.ACK, 16, ''),
-                  PacketType.DESC : Packet(PacketType.DESC, 76, ''),
-                  PacketType.VAL : Packet(PacketType.VAL, 9, ''),
-                  PacketType.SET : Packet(PacketType.SET, 5, ''),
-                  PacketType.EXIT : Packet(PacketType.EXIT, 0, '') }
+class PacketACK(Packet):
+	def __init__(self):
+		self.super(PacketType.ACK, 1, '')
+
+	def setFields(self, serviceID):
+		self.serviceID = serviceID
+
+	def deserialize(self, buffer):
+		pass
+
+	def serialize(self):
+		return bytearray('')
+
+class PacketNAK(Packet):
+	def __init__(self):
+		self.super(PacketType.NAK, 1, '')
+
+	def setFields(self, serviceID):
+		self.serviceID = serviceID
+
+	def serialize(self):
+		return bytearray('')
+
+	def deserialize(self, buffer):
+		pass
+
+
+class PacketEOT(Packet):
+	def __init__(self):
+		self.super(PacketType.EOT, 0, '')
+
+	def serialize(self):
+		return bytearray('')
+
+	def deserialize(self, buffer):
+		pass
+
+
+class PacketCHALL(Packet):
+	def __init__(self):
+		self.super(PacketType.CHALL, 8, '')
+
+	def setFields(self, randomBytes):
+		self.randomBytes = randomBytes
+
+	def serialize(self):
+		return bytearray('')
+
+	def deserialize(self, buffer):
+		pass
+
+class PacketCHALL_RESP(Packet):
+	def __init__(self):
+		self.super(PacketType.CHALL_RESP, 256, '')
+
+	def setFields(self, encryptedBytes):
+		self.encryptedBytes = encryptedBytes
+
+	def serialize(self):
+		return bytearray('')
+
+	def deserialize(self, buffer):
+		pass
+
+
+class PacketKEY(Packet):
+	def __init__(self):
+		self.super(PacketType.KEY, 16, '')
+
+	def setFields(self, symetricKey):
+		self.symetricKey = symetricKey
+
+	def serialize(self):
+		return bytearray('')
+
+	def deserialize(self, buffer):
+		pass
+
+class PacketDESC(Packet):
+	def __init__(self):
+		self.super(PacketType.DESC, 76, '')
+
+	def setFields(self, devClass, name, unit, minValue, maxValue):
+		self.devClass = devClass
+		self.name = name
+		self.unit = unit
+		self.minValue = minValue
+		self.maxValue = maxValue
+
+	def serialize(self):
+		return bytearray('')
+
+	def deserialize(self, buffer):
+		pass
+
+class PacketVAL(Packet):
+	def __init__(self):
+		self.super(PacketType.VAL, 9, '')
+
+	def setFields(self, serviceId, nValue, timestamp):
+		self.serviceId = serviceId
+		self.nValue = nValue
+		self.timestamp = timestamp
+
+	def serialize(self):
+		return bytearray('')
+
+	def deserialize(self, buffer):
+		pass
+
+class PacketSET(Packet):
+	def __init__(self):
+		self.super(PacketType.SET, 5, '')
+
+	def setFields(self, serviceId, value):
+		self.serviceId = serviceId
+		self.value = value
+
+	def serialize(self):
+		return bytearray('')
+
+	def deserialize(self, buffer):
+		pass
+
+class PacketEXIT(Packet):
+	def __init__(self):
+		self.super(PacketType.EXIT, 1, '')
+
+	def setFields(self, serviceId):
+		self.serviceId = serviceId
+
+	def serialize(self):
+		return bytearray('')
+
+	def deserialize(self, buffer):
+		pass
+
+def packetFactory(pId):
+	if pId == PacketType.ACK:
+		return PacketACK()
+	elif pId == PacketType.NAK:
+		return PacketNAK()
+	elif pId == PacketType.DESC:
+		return PacketDESC()
+	elif pId == PacketType.CHALL_RESP:
+		return PacketCHALL_RESP()
+	elif pId == PacketType.CHALL:
+		return PacketCHALL()
+	elif pId == PacketType.EOT:
+		return PacketEOT()
+	elif pId == PacketType.EXIT:
+		return PacketEXIT()
+	elif pId == PacketType.SET:
+		return PacketSET()
+	elif pId == PacketType.VAL:
+		return PacketVAL()
+	else:
+		raise ValueError('packet type unkown')
+
