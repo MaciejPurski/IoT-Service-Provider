@@ -18,7 +18,7 @@ class Packet:
 	def __init__(self, pid, p_len, format_str):
 		self.pid = pid
 		self.p_len = p_len
-		self.p_len_encrypted = (p_len / 16 + 1) * 6  # AES encrypted message length
+		self.p_len_encrypted = (p_len / 16 + 1) * 16  # AES encrypted message length
 		self.format_str = format_str
 		self._values_tuple = ()
 
@@ -211,4 +211,4 @@ def packet_factory(pid):
 	elif pid == PacketType.VAL:
 		return PacketVAL()
 	else:
-		raise ValueError('packet type unkown')
+		raise ValueError('Packet type unkown')

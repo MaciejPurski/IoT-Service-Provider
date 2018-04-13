@@ -1,5 +1,7 @@
 import SocketLayer
 import Packets
+import socket
+import sys
 from Packets import packet_factory
 from CryptoCore import CipherRSA
 
@@ -25,4 +27,12 @@ class Protocol:
 
 	def register_seq(self, descriptorsList):
 		self.connection.establish_connection()
-		self.authenticate()
+		try:
+			self.authenticate()
+		except socket.error as e:
+			sys.stderr.write('Network connection problem ({0})'.format(e))
+			sys.exit(1)
+		except (ValueError, TypeError) as e:
+			sys.stderr.write('Protocol error ({0})'.format(e))
+			self.connection.sock.close()
+			sys.exit(1)
