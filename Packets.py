@@ -1,7 +1,6 @@
 import struct
 from collections import namedtuple
 
-
 class PacketType:
 	ACK = 0x01
 	NAK = 0x02
@@ -16,7 +15,7 @@ class PacketType:
 	ID = 0xa1
 
 class Packet:
-	def __init__(self, pid, format_str, values_namedtuple):
+	def __init__(self, format_str, values_namedtuple):
 		self.pid = pid
 		self.packet_struct = struct.Struct(format_str)
 		self.values_namedtuple = values_namedtuple
@@ -26,15 +25,16 @@ class Packet:
 		print("pid: {}".format(self.pid))
 		print(bytes(self.pid))
 
-		return self.packet_struct.pack(self.pid, *self.fields)
+		return self.packet_struct.pack(*self.fields)
 
 
 class PacketACK(Packet):
-	ACK = namedtuple('ACK', 'packet_id')
+	ACK_namedtuple = namedtuple('ACK', 'pid packet_id')
 	format_str = '=b b'
 
-	def __init__(self):
-		super().__init__(PacketType.ACK, PacketACK.format_str, PacketACK.ACK)
+	def __init__(self, packet_id):
+		super().__init__(PacketACK.format_str, PacketACK.ACK_namedtuple)
+		self.fields = self.values_namedtuple(PacketType.ACK, packet_id)
 
 
 class PacketNAK(Packet):
@@ -140,5 +140,8 @@ def packet_factory(pid):
 
 def packet_deserialize(buf):
 	pack = packet_factory(buf[0])
+	t = pack.packet_struct.unpack(buf)
+	for p in t:
+		print(type(p))
 	pack.fields = pack.values_namedtuple._make(pack.packet_struct.unpack(buf))
 	return pack
