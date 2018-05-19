@@ -43,6 +43,10 @@ class CipherAES:
 	def unpad(buf):
 		return buf[:-ord(buf[len(buf)-1:])] 
 
+	@staticmethod
+	def encrypted_msg_length(legnth):
+		return AES.block_size + length + (AES.block_size - length % AES.block_size)
+
 class CipherRSA:
 	def __init__(self, public_key_file, private_key_file):
 		self.public_key = RSA.importKey(open(public_key_file).read())

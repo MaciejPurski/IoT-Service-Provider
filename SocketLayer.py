@@ -2,8 +2,11 @@ import socket
 from CryptoCore import *
 from Packets import packet_factory
 import sys
+import struct
 
 class Connection:
+	int_struct = struct.Struct('=I')
+
 	def __init__(self, ip, port):
 		self.ip = ip
 		self.port = port
@@ -21,33 +24,34 @@ class Connection:
 		except socket.error as e:
 			sys.stderr.write('Error connecting to server: ({0})'.format(e))
 
-	def packet_read(self, encrypted):
-		#check packet type
-		packet_id = self.sock.recv(1)
-		packet = packet_factory(packet_id)
+	def next_packet(self):
+		# first byte contains information whether the packet is encrypted
+		b = read_bytes(1)
+		encrypted = if b[0] == 0x01 True else False
 
-		bytes_rcd = 0
-		buffer = bytearray('')
-		p_length = packet.pLengthEncrypted if encrypted else packet.pLength
+		packet_length = int_struct.unpack(read_bytes(4))
 
-		while bytes_rcd < p_length:
-			chunk = self.sock.recv(p_length - bytes_rcd)
-			if chunk == 0: #socket has been closed
-				raise socket.error('Socket closed suddenly')
-			buffer.append(chunk)
-
+		# if packet is encrypted, calculate proper length
 		if encrypted:
-			packet.deserialize(decrypt_aes(buffer))
-		else:
-			packet.deserialize(buffer)
+			packet_legnth = CipherAES.encrypted_msg_length(packet_length)
 
-		return packet
+		packet_bytes = read_bytes(packet_length)
 
-	def packet_send(self, packet, encrypted):
-		if encrypted:
-			buffer = encrypt_aes(packet.serialize())
-		else:
-			buffer = packet.serialize()
+		# tuple containing information, if we should decrypt the data
+		return (packet_bytes, encrypted)
 
+	def packet_send(self, packet):
 		self.sock.send(buffer)
 		#TODO error checking
+
+	def read_bytes(self, n_bytes):
+		bytes_rcd = 0
+		buf = bytearray()
+
+		while bytes_rcd < n_bytes:
+			chunk = self.sock.recv(n_bytes - bytes_rcd)
+			if chunk == 0: # socket has been closed
+				raise socket.error('Socket closed suddenly')
+			buf.append(chunk)
+
+		return buf

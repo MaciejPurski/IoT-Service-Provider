@@ -14,134 +14,192 @@ class PacketType:
 	EXIT = 0xa0
 	ID = 0xa1
 
-class Packet:
-	def __init__(self, format_str, values_namedtuple):
-		self.pid = pid
-		self.packet_struct = struct.Struct(format_str)
-		self.values_namedtuple = values_namedtuple
-		self.fields = ()
-
-	def serialize(self):
-		print("pid: {}".format(self.pid))
-		print(bytes(self.pid))
-
-		return self.packet_struct.pack(*self.fields)
-
-
-class PacketACK(Packet):
-	ACK_namedtuple = namedtuple('ACK', 'pid packet_id')
-	format_str = '=b b'
-
-	def __init__(self, packet_id):
-		super().__init__(PacketACK.format_str, PacketACK.ACK_namedtuple)
-		self.fields = self.values_namedtuple(PacketType.ACK, packet_id)
-
-
-class PacketNAK(Packet):
-	NAK = namedtuple('NAK', 'packet_id')
-	format_str = '=b b'
-	packet_type = PacketType.NAK
-
-	def __init__(self):
-		super.__init__(packet_type, format_str, NAK)
-
-
-class PacketEOT(Packet):
-	EOT = namedtuple('EOT', '')
-	format_str = '=b'
-	packet_type = PacketType.EOT
-
-	def __init__(self):
-		super.__init__(packet_type, format_str, EOT)
-
-
-class PacketCHALL(Packet):
-	CHALL = namedtuple('CHALL', 'random_bytes')
-	format_str = '=b 8b'
-	packet_type = PacketType.EOT
-
-	def __init__(self):
-		super.__init__(packet_type, format_str, CHALL)
-
-
-class PacketCHALL_RESP(Packet):
-	CHALL_RESP = namedtuple('CHALL_RESP', 'encrypted_bytes')
-	format_str = '=b 256b'
-	packet_type = PacketType.CHALL_RESP
-
-	def __init__(self):
-		super.__init__(packet_type, format_str, CHALL_RESP)
-
-class PacketKEY(Packet):
-	KEY = namedtuple('KEY', 'symmetric_key')
-	format_str = '=b 16b'
-	packet_type = PacketType.CHALL_RESP
-
-	def __init__(self):
-		super.__init__(packet_type, format_str, KEY)
-
-
-class PacketDESC(Packet):
-	DESC = namedtuple('CHALL_RESP', 'dev_class name unit min_value max_value')
-	packet_type = PacketType.DESC
-
-	def __init__(self, name_len = 64):
-		format_str = '=b 1b ' + bytes(name_len) + 's 4s f f'
-		super.__init__(packet_type, format_str, DESC)
-
-class PacketVAL(Packet):
-	VAL = namedtuple('VAL', 'service_id value timestamp')
-	packet_type = PacketType.VAL
-	format_str = '=b b f 4I'
-
-	def __init__(self):
-		super.__init__(packet_type, format_str, VAL)
-
-class PacketSET(Packet):
-	SET = namedtuple('SET', 'service_id value')
-	packet_type = PacketType.SET
-	format_str = '=b b f'
-
-	def __init__(self):
-		super.__init__(packet_type, format_str, SET)
-
-
-class PacketEXIT(Packet):
-	EXIT = namedtuple('EXIT', 'service_id')
-	packet_type = PacketType.EXIT
-	format_str = '=b b'
-
-	def __init__(self):
-		super.__init__(packet_type, format_str, EXIT)
-
-
 def packet_factory(pid):
 	if pid == PacketType.ACK:
-		return PacketACK()
+		return PacketACK
 	elif pid == PacketType.NAK:
-		return PacketNAK()
+		return PacketNAK
 	elif pid == PacketType.DESC:
-		return PacketDESC()
+		return PacketDESC
 	elif pid == PacketType.CHALL_RESP:
-		return PacketCHALL_RESP()
+		return PacketCHALL_RESP
 	elif pid == PacketType.CHALL:
-		return PacketCHALL()
+		return PacketCHALL
+	elif pid == PacketType.KEY:
+		return PacketKEY
 	elif pid == PacketType.EOT:
-		return PacketEOT()
+		return PacketEOT
 	elif pid == PacketType.EXIT:
-		return PacketEXIT()
+		return PacketEXIT
 	elif pid == PacketType.SET:
-		return PacketSET()
+		return PacketSET
 	elif pid == PacketType.VAL:
-		return PacketVAL()
+		return PacketVAL
+	elif pid == PacketType.ID:
+		return PacketID
 	else:
 		raise ValueError('Packet type unkown')
 
+def deserialize(buf):
+	# recognize packet based on its pid TODO: mapa
+	Packet_class = packet_factory(buf[0])
+	# create packet instance
+	if Packet_class == PacketDESC:
+		pack_object = Packet_class(len(buf) - 14)
+		fields_tuple = pack_object.Packet_struct.unpack(buf)
+	else:
+		pack_object = Packet_class()
+		# parse fields according to given format string in packet_struct
+		fields_tuple = Packet_class.Packet_struct.unpack(buf)
 
-def packet_deserialize(buf):
-	pack = packet_factory(buf[0])
-	t = pack.packet_struct.unpack(buf)
-	for p in t:
-		print(type(p))
-	pack.fields = pack.values_namedtuple._make(pack.packet_struct.unpack(buf))
-	return pack
+	# cast fields to the corresponding nameduple
+	pack_object.fields = Packet_class.Packet_tuple._make(fields_tuple)
+
+	return pack_object
+
+
+def serialize(packet):
+	return packet.Packet_struct.pack(*packet.fields)
+
+
+class PacketACK:
+	pid = 0x01
+	Packet_tuple = namedtuple('ACK', 'pid service_id')
+	Packet_struct = struct.Struct('=B B')
+
+	@classmethod
+	def create(cls, service_id):
+		pack = cls()
+		pack.fields = pack.Packet_tuple(cls.pid, service_id)
+		return pack
+
+
+class PacketNAK:
+	pid = 0x02
+	Packet_tuple = namedtuple('NAK', 'pid service_id')
+	Packet_struct = struct.Struct('=B B')
+
+	@classmethod
+	def create(cls, service_id):
+		pack = cls()
+		pack.fields = pack.Packet_tuple(cls.pid, service_id)
+		return pack
+
+
+class PacketEOT:
+	pid = 0x03
+	Packet_tuple = namedtuple('EOT', 'pid')
+	Packet_struct = struct.Struct('=B')
+
+	@classmethod
+	def create(cls):
+		pack = cls()
+		pack.fields = pack.Packet_tuple(cls.pid)
+		return pack
+
+
+class PacketCHALL:
+	pid = 0x04
+	Packet_tuple = namedtuple('CHALL', 'pid random_bytes')
+	Packet_struct = struct.Struct('=B 8s')
+
+	@classmethod
+	def create(cls, random_bytes):
+		if len(random_bytes) != 8:
+			raise ValueError("{}: Expected 8 bytes buffer, got: {}".format(cls.__name__, len(random_bytes)))
+
+		pack = cls()
+		pack.fields = pack.Packet_tuple(cls.pid, random_bytes)
+		return pack
+
+
+class PacketCHALL_RESP:
+	pid = 0x05
+	Packet_tuple = namedtuple('CHALL_RESP', 'pid encrypted_bytes')
+	Packet_struct = struct.Struct('=B 256s')
+
+	@classmethod
+	def create(cls, encrypted_bytes):
+		if len(encrypted_bytes) != 256:
+			raise ValueError("{}: Expected 256 bytes buffer, got: {}".format(cls.__name__, len(encrypted_bytes)))
+
+		pack = cls()
+		pack.fields = pack.Packet_tuple(cls.pid, encrypted_bytes)
+		return pack
+
+class PacketKEY:
+	pid = 0x06
+	Packet_tuple = namedtuple('KEY', 'pid symmetric_key')
+	Packet_struct = struct.Struct('=B 16s')
+
+	@classmethod
+	def create(cls, symmetric_key):
+		if len(symmetric_key) != 16:
+			raise ValueError("{}: Expected 16 bytes buffer, got: {}".format(cls.__name__, len(symmetric_key)))
+
+		pack = cls()
+		pack.fields = pack.Packet_tuple(cls.pid, symmetric_key)
+		return pack
+
+
+class PacketDESC:
+	pid = 0x07
+	Packet_tuple = namedtuple('CHALL_RESP', 'pid dev_class name unit min_value max_value')
+
+	def __init__(self, name_len=64):
+		format_str = '=B 1B ' + str(name_len) + 's 4s f f'
+		self.Packet_struct = struct.Struct(format_str)
+
+	@classmethod
+	def create(cls, dev_class, name, unit, min_value, max_value):
+		if len(name) > 2048:
+			raise ValueError("Human readable name too long")
+
+		pack = cls(len(name))
+		pack.fields = pack.Packet_tuple(cls.pid, dev_class, name, unit, min_value, max_value)
+		return pack
+
+class PacketVAL:
+	pid = 0x08
+	Packet_tuple = namedtuple('VAL', 'pid service_id value timestamp')
+	Packet_struct = struct.Struct('=B B f I')
+
+
+	@classmethod
+	def create(cls, service_id, value, timestamp):
+		pack = cls()
+		pack.fields = pack.Packet_tuple(cls.pid, service_id, value, timestamp)
+		return pack
+
+class PacketSET:
+	pid = 0x09
+	Packet_tuple = namedtuple('SET', 'pid service_id value')
+	Packet_struct = struct.Struct('=B B f')
+
+	@classmethod
+	def create(cls, service_id, value):
+		pack = cls()
+		pack.fields = pack.Packet_tuple(cls.pid, service_id, value)
+		return pack
+
+class PacketEXIT:
+	pid = 0xa0
+	Packet_tuple = namedtuple('EXIT', 'pid service_id')
+	Packet_struct = struct.Struct('=B B')
+
+	@classmethod
+	def create(cls, service_id):
+		pack = cls()
+		pack.fields = pack.Packet_tuple(cls.pid, service_id)
+		return pack
+
+class PacketID:
+	pid = 0xa1
+	Packet_tuple = namedtuple('ID', 'pid device_id')
+	Packet_struct = struct.Struct('=B B')
+
+	@classmethod
+	def create(cls, device_id):
+		pack = cls()
+		pack.fields = pack.Packet_tuple(cls.pid, device_id)
+		return pack
