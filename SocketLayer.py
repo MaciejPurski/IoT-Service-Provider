@@ -40,8 +40,8 @@ class Connection:
 		# tuple containing information, if we should decrypt the data
 		return (packet_bytes, encrypted)
 
-	def packet_send(self, packet):
-		self.sock.send(buffer)
+	def send_data(self, buf):
+		self.sock.send(buf)
 		#TODO error checking
 
 	def read_bytes(self, n_bytes):
