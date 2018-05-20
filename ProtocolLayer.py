@@ -1,7 +1,8 @@
 import SocketLayer
-import Packets
+from Packets import *
 import socket
 import sys
+from Crypto import Random
 from CryptoCore import *
 import struct
 
@@ -14,17 +15,19 @@ class Protocol:
 		self.prefix_struct = struct.Struct('=B I')
 
 	def authenticate(self):
-		# TODO handle error
+		# authenticate client in for the server
 		rcv_packet = parse_packet()
 		if not isinstance(rcv_packet, Packets.PacketCHALL):
 			raise TypeError('wrong packet received')
 
-		encrypted_bytes = CipherRSA.encrypt_rsa(rcv_packet.random_bytes())
-		chall_resp = packet_factory(Packets.PacketType.CHALL_RESP)
-		chall_resp.set_fields(encrypted_bytes)
+		encrypted_bytes = CipherRSA.encrypt_rsa(rcv_packet.fields.random_bytes)
+		chall_resp = PacketCHALL_RESP(encrypted_bytes)
 
-		self.connection.packet_send(chall_resp, False)
-		
+		send_packet(chall_resp, False)
+		# server authentication
+		random_bytes = Random.new().read(8)
+		chall = PacketCHALL(random_bytes)
+		send_packet(chall)
 
 
 	def register_seq(self, descriptorsList):
@@ -45,7 +48,7 @@ class Protocol:
 		# encrypted
 		if packets_data[1]:
 			packets_buf = self.cipher_aes.decrypt_aes(packets_data[0])
-		else 
+		else:
 			packets_buf = packets_data[0]
 
 		# TODO exceptions handling

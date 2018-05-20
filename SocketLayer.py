@@ -23,11 +23,12 @@ class Connection:
 			sys.stderr.write('Address related error connecting to server: ({0})'.format(e))
 		except socket.error as e:
 			sys.stderr.write('Error connecting to server: ({0})'.format(e))
+		print('Connection successfully established')
 
 	def next_packet(self):
 		# first byte contains information whether the packet is encrypted
 		b = read_bytes(1)
-		encrypted = if b[0] == 0x01 True else False
+		encrypted = True if b[0] == 0x01 else False
 
 		packet_length = int_struct.unpack(read_bytes(4))
 
@@ -55,3 +56,7 @@ class Connection:
 			buf.append(chunk)
 
 		return buf
+
+	def close_connection(self):
+		self.sock.close()
+		print('Connection closed')

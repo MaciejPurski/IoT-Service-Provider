@@ -51,8 +51,8 @@ class CipherRSA:
 	def __init__(self, public_key_file, private_key_file):
 		self.public_key = RSA.importKey(open(public_key_file).read())
 		self.private_key = RSA.importKey(open(private_key_file).read())
-		self.pub_cipher = PKCS1_OAEP.new(public_key)
-		self.priv_cipher = PKCS1_OAEP.new(priv_cipher)
+		self.pub_cipher = PKCS1_OAEP.new(self.public_key)
+		self.priv_cipher = PKCS1_OAEP.new(self.private_key)
 
 	def encrypt_rsa(self, buffer):
 		return self.priv_cipher.encrypt(buffer)
