@@ -11,8 +11,8 @@ class PacketType:
 	DESC = 0x07
 	VAL = 0x08
 	SET = 0x09
-	EXIT = 0xa0
-	ID = 0xa1
+	EXIT = 0x0a
+	ID = 0x0b
 
 def packet_factory(pid):
 	if pid == PacketType.ACK:
@@ -183,7 +183,7 @@ class PacketSET:
 		return pack
 
 class PacketEXIT:
-	pid = 0xa0
+	pid = 0x0a
 	Packet_tuple = namedtuple('EXIT', 'pid service_id')
 	Packet_struct = struct.Struct('=B B')
 
@@ -194,12 +194,14 @@ class PacketEXIT:
 		return pack
 
 class PacketID:
-	pid = 0xa1
+	pid = 0x0b
 	Packet_tuple = namedtuple('ID', 'pid device_id')
 	Packet_struct = struct.Struct('=B B')
 
 	@classmethod
 	def create(cls, device_id):
+		print("Create called")
 		pack = cls()
+		print("packet instnatiated")
 		pack.fields = pack.Packet_tuple(cls.pid, device_id)
 		return pack

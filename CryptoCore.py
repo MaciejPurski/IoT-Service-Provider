@@ -4,6 +4,9 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import AES
 from Crypto import Random
+from Crypto.Signature import PKCS1_v1_5
+from Crypto.Hash import SHA
+from Crypto.PublicKey import RSA
 
 class CipherAES:
 	def __init__(self):
@@ -44,18 +47,27 @@ class CipherAES:
 		return buf[:-ord(buf[len(buf)-1:])] 
 
 	@staticmethod
-	def encrypted_msg_length(legnth):
+	def encrypted_msg_length(length):
 		return AES.block_size + length + (AES.block_size - length % AES.block_size)
 
 class CipherRSA:
 	def __init__(self, public_key_file, private_key_file):
 		self.public_key = RSA.importKey(open(public_key_file).read())
 		self.private_key = RSA.importKey(open(private_key_file).read())
-		self.pub_cipher = PKCS1_OAEP.new(self.public_key)
+
 		self.priv_cipher = PKCS1_OAEP.new(self.private_key)
 
-	def encrypt_rsa(self, buffer):
-		return self.priv_cipher.encrypt(buffer)
+		self.signer = PKCS1_v1_5.new(self.private_key)
+		self.verifier = PKCS1_v1_5.new(self.public_key)
 
 	def decrypt_rsa(self, buffer):
-		return self.pub_cipher.decrypt(buffer)
+		return self.priv_cipher.decrypt(buffer)
+
+	def sign(self, msg):
+		h = SHA.new(msg)
+		return self.signer.sign(h)
+
+	def verify(self, msg, signature):
+		h = SHA.new(msg)
+		return self.verifier.verify(h, signature)
+
