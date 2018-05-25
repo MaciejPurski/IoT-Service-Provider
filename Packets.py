@@ -130,12 +130,12 @@ class PacketCHALL_RESP:
 class PacketKEY:
 	pid = 0x06
 	Packet_tuple = namedtuple('KEY', 'pid symmetric_key')
-	Packet_struct = struct.Struct('=B 16s')
+	Packet_struct = struct.Struct('=B 256s')
 
 	@classmethod
 	def create(cls, symmetric_key):
-		if len(symmetric_key) != 16:
-			raise ValueError("{}: Expected 16 bytes buffer, got: {}".format(cls.__name__, len(symmetric_key)))
+		if len(symmetric_key) != 256:
+			raise ValueError("{}: Expected 256 bytes buffer, got: {}".format(cls.__name__, len(symmetric_key)))
 
 		pack = cls()
 		pack.fields = pack.Packet_tuple(cls.pid, symmetric_key)
@@ -144,10 +144,10 @@ class PacketKEY:
 
 class PacketDESC:
 	pid = 0x07
-	Packet_tuple = namedtuple('CHALL_RESP', 'pid dev_class name unit min_value max_value')
+	Packet_tuple = namedtuple('DESC', 'pid dev_class name unit min_value max_value')
 
 	def __init__(self, name_len=64):
-		format_str = '=B 1B ' + str(name_len) + 's 4s f f'
+		format_str = '=B 1B ' + str(name_len + 1) + 's 4s f f'
 		self.Packet_struct = struct.Struct(format_str)
 
 	@classmethod
@@ -156,7 +156,10 @@ class PacketDESC:
 			raise ValueError("Human readable name too long")
 
 		pack = cls(len(name))
-		pack.fields = pack.Packet_tuple(cls.pid, dev_class, name, unit, min_value, max_value)
+		pack.fields = pack.Packet_tuple(cls.pid, dev_class, name + b'\0x00', unit + b'\x00', min_value, max_value)
+		with open('desc', 'wb') as f:
+			f.write(serialize(pack))
+			f.close()
 		return pack
 
 class PacketVAL:
@@ -164,11 +167,13 @@ class PacketVAL:
 	Packet_tuple = namedtuple('VAL', 'pid service_id value timestamp')
 	Packet_struct = struct.Struct('=B B f I')
 
-
 	@classmethod
 	def create(cls, service_id, value, timestamp):
 		pack = cls()
 		pack.fields = pack.Packet_tuple(cls.pid, service_id, value, timestamp)
+		with open('val', 'wb') as f:
+			f.write(serialize(pack))
+			f.close()
 		return pack
 
 class PacketSET:
@@ -200,8 +205,6 @@ class PacketID:
 
 	@classmethod
 	def create(cls, device_id):
-		print("Create called")
 		pack = cls()
-		print("packet instnatiated")
 		pack.fields = pack.Packet_tuple(cls.pid, device_id)
 		return pack

@@ -10,14 +10,10 @@ class Connection:
 	def __init__(self, ip, port):
 		self.ip = ip
 		self.port = int(port)
-		try:
-			self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		except socket.error as e:
-			sys.stderr.write('Error creating socket: ({0})'.format(e))
-			sys.exit(1)
 
 	def establish_connection(self):
 		try:
+			self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			self.sock.connect((self.ip, self.port))
 		except socket.gaierror as e:
 			sys.stderr.write('Address related error connecting to server: ({0})'.format(e))
@@ -37,7 +33,7 @@ class Connection:
 		encrypted = True if b[0] == 0x01 else False
 		# if packet is encrypted, calculate proper length
 		if encrypted:
-			packet_legnth = CipherAES.encrypted_msg_length(packet_length)
+			packet_length = CipherAES.encrypted_msg_length(packet_length)
 
 		packet_bytes = self.read_bytes(packet_length)
 
@@ -54,7 +50,6 @@ class Connection:
 
 		while bytes_rcd < n_bytes:
 			chunk = self.sock.recv(n_bytes - bytes_rcd)
-			print(type(chunk))
 			if chunk == b'': # socket has been closed
 				raise socket.error('Socket closed suddenly')
 			chunks.append(chunk)
@@ -63,5 +58,6 @@ class Connection:
 		return b''.join(chunks)
 
 	def close_connection(self):
+		self.sock.shutdown(socket.SHUT_RDWR)
 		self.sock.close()
 		print('Connection closed')

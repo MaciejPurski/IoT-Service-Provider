@@ -8,6 +8,10 @@ from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA
 from Crypto.PublicKey import RSA
 
+
+def get_random_bytes(n_bytes):
+	return Random.new().read(n_bytes)
+
 class CipherAES:
 	def __init__(self):
 		self.__key_valid = False
@@ -20,35 +24,36 @@ class CipherAES:
 		self.__key = new_key_bytes
 		self.__key_valid = True
 
-	def encrypt_aes(self, buffer):
+	def encrypt(self, buffer):
 		if not self.__key_valid:
 			raise RuntimeError('Key not initialized')
 
 		iv = Random.new().read(AES.block_size)
 		cipher = AES.new(self.__key, AES.MODE_CBC, iv)
-		encrypted = iv + cipher.encrypt(CipherAES.pad(buffer))
-		print('CryptoCore: Msg length before encryption: {} after: {}'.format(len(buffer), len(encrypted)))
+		encrypted = cipher.encrypt(self.pad(buffer)) + iv
 
 		return encrypted
 
-	def decrypt_aes(self, buffer):
-		iv = buffer[:AES.block_size]
+	def decrypt(self, buffer):
+		iv = buffer[len(buffer) - AES.block_size:]
 		cipher = AES.new(self.__key, AES.MODE_CBC, iv)
-		decrypted = CipherAES.unpad(cipher.decrypt(buffer[AES.block_size:]))
+		decrypted = self.unpad(cipher.decrypt(buffer[:len(buffer) - AES.block_size]))
 
 		return decrypted
 
 	@staticmethod
 	def pad(buf):
-		return buf + (AES.block_size - len(buf) % AES.block_size) * chr(AES.block_size - len(buf) % AES.block_size)
+		length = AES.block_size - (len(buf) % AES.block_size)
+		return buf + bytes([length]) * length
 
 	@staticmethod
 	def unpad(buf):
-		return buf[:-ord(buf[len(buf)-1:])] 
+		return buf[:-buf[-1]]
 
 	@staticmethod
 	def encrypted_msg_length(length):
 		return AES.block_size + length + (AES.block_size - length % AES.block_size)
+
 
 class CipherRSA:
 	def __init__(self, public_key_file, private_key_file):
@@ -60,7 +65,7 @@ class CipherRSA:
 		self.signer = PKCS1_v1_5.new(self.private_key)
 		self.verifier = PKCS1_v1_5.new(self.public_key)
 
-	def decrypt_rsa(self, buffer):
+	def decrypt(self, buffer):
 		return self.priv_cipher.decrypt(buffer)
 
 	def sign(self, msg):

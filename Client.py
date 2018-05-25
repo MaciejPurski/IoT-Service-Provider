@@ -4,6 +4,7 @@ from ProtocolLayer import *
 from ConfigParser import *
 from Service import Service
 import sys
+import time
 
 if len(sys.argv) != 2:
 	print("Expected one argument")
@@ -21,3 +22,7 @@ services_list = [Service(*t) for t in services_tuples_list]
 protocol = Protocol(*device_namedtuple)
 
 protocol.register(services_list)
+
+while True:
+	time.sleep(3)
+	protocol.transmission(services_list)
