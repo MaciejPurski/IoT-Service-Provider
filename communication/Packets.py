@@ -1,6 +1,7 @@
 import struct
 from collections import namedtuple
 
+
 class PacketType:
 	ACK = 0x01
 	NAK = 0x02
@@ -13,6 +14,7 @@ class PacketType:
 	SET = 0x09
 	EXIT = 0x0a
 	ID = 0x0b
+
 
 def packet_factory(pid):
 	if pid == PacketType.ACK:
@@ -40,12 +42,13 @@ def packet_factory(pid):
 	else:
 		raise ValueError('Packet type unkown')
 
+
 def deserialize(buf):
 	# recognize packet based on its pid TODO: mapa
 	Packet_class = packet_factory(buf[0])
 	# create packet instance
 	if Packet_class == PacketDESC:
-		pack_object = Packet_class(len(buf) - 14)
+		pack_object = Packet_class(len(buf) - 15)
 		fields_tuple = pack_object.Packet_struct.unpack(buf)
 	else:
 		pack_object = Packet_class()
@@ -127,6 +130,7 @@ class PacketCHALL_RESP:
 		pack.fields = pack.Packet_tuple(cls.pid, encrypted_bytes)
 		return pack
 
+
 class PacketKEY:
 	pid = 0x06
 	Packet_tuple = namedtuple('KEY', 'pid symmetric_key')
@@ -152,6 +156,9 @@ class PacketDESC:
 
 	@classmethod
 	def create(cls, dev_class, name, unit, min_value, max_value):
+		if len(unit) > 3:
+			raise ValueError("Packet desc create name too long")
+
 		if len(name) > 2048:
 			raise ValueError("Human readable name too long")
 
@@ -161,6 +168,7 @@ class PacketDESC:
 			f.write(serialize(pack))
 			f.close()
 		return pack
+
 
 class PacketVAL:
 	pid = 0x08
@@ -176,6 +184,7 @@ class PacketVAL:
 			f.close()
 		return pack
 
+
 class PacketSET:
 	pid = 0x09
 	Packet_tuple = namedtuple('SET', 'pid service_id value')
@@ -187,6 +196,7 @@ class PacketSET:
 		pack.fields = pack.Packet_tuple(cls.pid, service_id, value)
 		return pack
 
+
 class PacketEXIT:
 	pid = 0x0a
 	Packet_tuple = namedtuple('EXIT', 'pid service_id')
@@ -197,6 +207,7 @@ class PacketEXIT:
 		pack = cls()
 		pack.fields = pack.Packet_tuple(cls.pid, service_id)
 		return pack
+
 
 class PacketID:
 	pid = 0x0b

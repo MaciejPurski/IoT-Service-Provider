@@ -1,9 +1,8 @@
-import SocketLayer
-from Packets import *
+from communication import SocketLayer
+from communication.Packets import *
 import socket
 import sys
-from Crypto import Random
-from CryptoCore import *
+from communication.CryptoCore import *
 import struct
 import time
 
@@ -14,15 +13,14 @@ class Protocol:
 		self.connection = SocketLayer.Connection(server_ip, port)
 		self.device_id = int(device_id)
 		self.cipher_aes = CipherAES()
+		self.should_exit = False
 
 	def authenticate(self):
 		# introduce client to the server
 		self.send_packet(PacketID.create(self.device_id))
 
 		# authenticate client
-		rcv_packet = self.parse_packet()
-		if not isinstance(rcv_packet, PacketCHALL):
-			raise TypeError('Wrong packet received')
+		rcv_packet = self.expect_packet(PacketCHALL)
 
 		# send encrypted challenge response
 		challenge_bytes = rcv_packet.fields.random_bytes
@@ -35,9 +33,7 @@ class Protocol:
 		self.send_packet(chall, False)
 
 		# verify server's signature
-		rcv_packet = self.parse_packet()
-		if not isinstance(rcv_packet, PacketCHALL_RESP):
-			raise TypeError('wrong packet received')
+		rcv_packet = self.expect_packet(PacketCHALL_RESP)
 
 		if not self.cipher_rsa.verify(random_bytes,
 		                              rcv_packet.fields.encrypted_bytes):
@@ -49,18 +45,10 @@ class Protocol:
 		# if the authentication goes OK, the server should send the symmetric key
 		self.receive_session_key()
 
-
 	def register(self, services_list):
 		self.connection.establish_connection()
-		try:
-			self.authenticate()
-		except socket.error as e:
-			sys.stderr.write('Network connection problem ({0})'.format(e))
-			sys.exit(1)
-		#except (ValueError, TypeError) as e:
-		#	sys.stderr.write('Authentication failed ({0})'.format(e))
-		#	self.connection.sock.close()
-		#	sys.exit(1)
+
+		self.authenticate()
 
 		print('Begin sending device descriptors:')
 		self.send_descriptors(services_list)
@@ -75,37 +63,27 @@ class Protocol:
 		# wait for the new session key
 		self.receive_session_key()
 
+		if self.should_exit:
+			self.controlled_exit()
+
 		self.send_values(services_list)
 		print("Values sent")
 
 		# receive set
-		for i in range(0, len(services_list)):
-			packet = self.parse_packet()
-
-			if isinstance(packet, PacketEOT):
-				break
-
-			if isinstance(packet, PacketEXIT):
-				print("Received EXIT command, exiting")
-				self.connection.close_connection()
-				exit(0)
-
-			if not isinstance(packet, PacketSET):
-				raise RuntimeError('Wrong packet received')
-
-			# try setting the received value
-			set_success = services_list[packet.fields.service_id].set_value(packet.fields.value)
-
-			if set_success:
-				self.send_packet(PacketACK.create(0), encrypt=True)
-			else:
-				self.send_packet(PacketNAK.create(0), encrypt=True)
+		self.get_commands(services_list)
 
 		self.connection.close_connection()
 		print("Transmission finished")
 
 	def parse_packet(self):
-		packets_data = self.connection.next_packet()
+		try:
+			packets_data = self.connection.next_packet()
+		except socket.timeout as t:
+			sys.stderr.write('Socket timeout error while receiving packet {}'.format(t))
+			exit(1)
+		except socket.errror as e:
+			exit(1)
+			sys.stderr.write('Socket error while receiving packet {}'.format(e))
 
 		# encrypted
 		if packets_data[1]:
@@ -115,8 +93,7 @@ class Protocol:
 
 		# TODO exceptions handling
 		packet = deserialize(packets_buf)
-		print('Packet received:')
-		print(type(packet.fields).__name__)
+		print('Packet received: ' + type(packet.fields).__name__)
 		return packet
 
 	def send_packet(self, packet, encrypt=False):
@@ -128,28 +105,27 @@ class Protocol:
 			packets_data = self.cipher_aes.encrypt(packets_data)
 
 		prefix = prefix_struct.pack(initial_data_length, 0x01 if encrypt else 0x00)
-		# TODO exceptions handling
-		self.connection.send_data(prefix + packets_data)
-		print('Packet sent:')
-		print(type(packet.fields).__name__)
+		try:
+			self.connection.send_data(prefix + packets_data)
+		except socket.errror as e:
+			sys.stderr.write('Socket error while sending packet {}'.format(e))
 
+		print('Packet sent: ' + type(packet.fields).__name__)
 
 	def receive_session_key(self):
-		rcv_packet = self.parse_packet()
-		if not isinstance(rcv_packet, PacketKEY):
-			raise TypeError('Wrong packet received')
-
+		rcv_packet = self.expect_packet(PacketKEY)
 		encrypted_symmetric_key = rcv_packet.fields.symmetric_key
-
 		self.cipher_aes.set_key(self.cipher_rsa.decrypt(encrypted_symmetric_key))
 		print('Symmetric key received')
 
 	def send_values(self, services_list):
 		# send values read from all the services
 		for service in services_list:
+			if not service.is_input:
+				continue
 			val_packet = PacketVAL.create(service.id, service.get_value(), int(time.time()))
-			print("value: {}".format(service.id))
 			self.send_packet(val_packet, encrypt=True)
+
 		# after all values has been sent, send EOT packet
 		self.send_packet(PacketEOT.create(), encrypt=True)
 
@@ -157,10 +133,10 @@ class Protocol:
 		for service in services_list:
 			# send service description
 			desc_packet = PacketDESC.create(service.service_class,
-											service.name,
-											service.unit,
-											service.min_value,
-											service.max_value)
+			                                service.name,
+			                                service.unit,
+			                                service.min_value,
+			                                service.max_value)
 			self.send_packet(desc_packet, encrypt=True)
 
 			rcv_packet = self.parse_packet()
@@ -174,3 +150,42 @@ class Protocol:
 			print("Service: {} registered succesfully received nr: {}".format(service.name, service.id))
 
 		self.send_packet(PacketEOT.create(), encrypt=True)
+
+	def get_commands(self, services_list):
+		for i in range(0, len(services_list)):
+			packet = self.parse_packet()
+
+			if isinstance(packet, PacketEOT):
+				break
+
+			if isinstance(packet, PacketEXIT):
+				print("Received EXIT command, exiting")
+				self.connection.close_connection()
+				exit(0)
+
+			if not isinstance(packet, PacketSET):
+				raise RuntimeError('Wrong packet received: expected {}. got: {}'.format(type(packet).__name__, PacketSET.__name__))
+
+			# try setting the received value
+			set_success = services_list[packet.fields.service_id].set_value(packet.fields.value)
+
+			if set_success:
+				self.send_packet(PacketACK.create(0), encrypt=True)
+			else:
+				self.send_packet(PacketNAK.create(0), encrypt=True)
+
+	def pend_exit(self):
+		self.should_exit = True
+
+	def controlled_exit(self):
+		self.send_packet(PacketEXIT.create(0), encrypt=True)
+		self.connection.close_connection()
+		sys.exit(0)
+
+	def expect_packet(self, expected_type):
+		rcv_packet = self.parse_packet()
+		if not isinstance(rcv_packet, expected_type):
+			exit(1)
+			raise RuntimeError('Wrong packet received: expected {}. got: {}'.format(type(rcv_packet).__name__, expected_type.__name__))
+
+		return rcv_packet

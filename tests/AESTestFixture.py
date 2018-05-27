@@ -3,17 +3,13 @@
 import unittest
 
 from Crypto import Random
-from CryptoCore import CipherAES
-from Crypto.Cipher import AES
+from communication.CryptoCore import *
 import random
+
 
 class AESTestCase(unittest.TestCase):
 	def setUp(self):
-		key_file = open('key', 'wb')
-		key = Random.new().read(AES.block_size)
-		key = b'DUPADUPADUPADUPA'
-		key_file.write(key)
-		key_file.close()
+		key = get_random_bytes(block_size_AES)
 		self.cipher = CipherAES()
 		self.cipher.set_key(key)
 
@@ -23,15 +19,14 @@ class AESTestCase(unittest.TestCase):
 		in_file.write(msg)
 		in_file.close()
 
-		encrypted = self.cipher.encrypt_aes(msg)
+		encrypted = self.cipher.encrypt(msg)
 		encr_file = open('encrypted', 'wb')
 		encr_file.write(encrypted)
 		encr_file.close()
-		decrypted = self.cipher.decrypt_aes(encrypted)
+		decrypted = self.cipher.decrypt(encrypted)
 
 		self.assertEqual(msg, decrypted)
-		self.assertEqual(len(encrypted), AES.block_size + len(CipherAES.pad(msg)))
-
+		self.assertEqual(len(encrypted), block_size_AES + len(CipherAES.pad(msg)))
 
 	def test_random_long_msgs(self):
 		random.seed()
@@ -39,12 +34,12 @@ class AESTestCase(unittest.TestCase):
 			length = random.randint(32, 1024)
 			msg = Random.new().read(length)
 
-			encrypted = self.cipher.encrypt_aes(msg)
-			decrypted = self.cipher.decrypt_aes(encrypted)
+			encrypted = self.cipher.encrypt(msg)
+			decrypted = self.cipher.decrypt(encrypted)
 
 			self.assertEqual(msg, decrypted)
-			self.assertEqual(len(encrypted), AES.block_size + len(CipherAES.pad(msg)))
+			self.assertEqual(len(encrypted), block_size_AES + len(CipherAES.pad(msg)))
 
 
 if __name__ == '__main__':
-    unittest.main()
+	unittest.main()

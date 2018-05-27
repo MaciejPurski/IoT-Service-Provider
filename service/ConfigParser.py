@@ -3,6 +3,7 @@
 import configparser
 from collections import namedtuple
 
+
 class Config:
 	Device_namedtuple = namedtuple('DEVICE', 'server_ip server_port device_id server_key client_key')
 	Service_namedtuple = namedtuple('SERVICE', ' service_class name  unit min_value max_value')
@@ -15,7 +16,7 @@ class Config:
 		device_tuple = self.section_to_tuple('DEVICE', Config.Device_namedtuple)
 		if device_tuple is None:
 			raise ValueError('Missing DEVICE section in config file')
-		
+
 		return device_tuple
 
 	def parse_services_config(self):
@@ -28,7 +29,6 @@ class Config:
 			services_list.append(t)
 
 		return services_list
-
 
 	def section_to_tuple(self, section, section_tuple):
 		if section not in self.config:
@@ -43,5 +43,3 @@ class Config:
 			fields_list.append(self.config[section][field])
 
 		return section_tuple(*fields_list)
-
-

@@ -2,7 +2,7 @@
 
 import unittest
 
-from AESTestFixture import AESTestCase
+from tests.AESTestFixture import AESTestCase
 
 def suite():
 	suite = unittest.TestSuite()

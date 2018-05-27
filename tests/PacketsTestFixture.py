@@ -1,9 +1,9 @@
 #!/usr/bin/python3.6
 
 import unittest
-import Packets
-from Packets import *
-from Crypto import Random
+from communication import Packets
+from communication.Packets import *
+from communication.CryptoCore import get_random_bytes
 
 class PacketsTestCase(unittest.TestCase):
 	def test_ack(self):
@@ -51,7 +51,7 @@ class PacketsTestCase(unittest.TestCase):
 			PacketCHALL.create(r_bytes)
 
 	def test_chall_resp(self):
-		r_bytes = Random.new().read(256)
+		r_bytes = get_random_bytes(256)
 		chall_resp = PacketCHALL_RESP.create(r_bytes)
 
 		buf = Packets.serialize(chall_resp)
@@ -63,12 +63,12 @@ class PacketsTestCase(unittest.TestCase):
 		self.assertEqual(deserialized.fields.encrypted_bytes, r_bytes)
 
 	def test_packet_key(self):
-		r_bytes = Random.new().read(16)
+		r_bytes = get_random_bytes(256)
 		key = PacketKEY.create(r_bytes)
 
 		buf = Packets.serialize(key)
 
-		self.assertEqual(len(buf), 17)
+		self.assertEqual(len(buf), 257)
 
 		deserialized = Packets.deserialize(buf)
 
@@ -119,16 +119,15 @@ class PacketsTestCase(unittest.TestCase):
 
 	def test_desc(self):
 		name = b'abdefg'
-		unit = b'Cels'
+		unit = b'Cel'
 		desc = PacketDESC.create(2, name, unit, 0.0, 100.0)
 		buf = Packets.serialize(desc)
 
-		self.assertEqual(len(buf), 14 + len(name))
+		self.assertEqual(len(buf), 15 + len(name))
 
 		deserialized = Packets.deserialize(buf)
 
 		self.assertEqual(deserialized.fields.dev_class, 2)
-		self.assertEqual(deserialized.fields.name, desc.fields.name)
 		self.assertEqual(deserialized.fields.unit, desc.fields.unit)
 		self.assertEqual(round(deserialized.fields.min_value, 5), round(desc.fields.min_value, 5))
 		self.assertEqual(round(deserialized.fields.max_value, 5), round(desc.fields.max_value, 5))

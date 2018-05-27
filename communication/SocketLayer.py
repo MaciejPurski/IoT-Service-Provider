@@ -1,8 +1,8 @@
 import socket
-from CryptoCore import *
-from Packets import packet_factory
+from communication.CryptoCore import *
 import sys
 import struct
+
 
 class Connection:
 	int_struct = struct.Struct('=I')
@@ -14,13 +14,17 @@ class Connection:
 	def establish_connection(self):
 		try:
 			self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			self.sock.settimeout(5.0)
 			self.sock.connect((self.ip, self.port))
 		except socket.gaierror as e:
-			sys.stderr.write('Address related error connecting to server: ({0})'.format(e))
-			raise RuntimeError('Connection failed')
+			sys.stderr.write('Address related error connecting to server: ({0}) \n'.format(e))
+			exit(1)
+		except socket.timeout as e:
+			sys.stderr.write('Socket timeout: ({0}) \n'.format(e))
+			exit(1)
 		except socket.error as e:
-			sys.stderr.write('Error connecting to server: ({0})'.format(e))
-			raise RuntimeError('Connection failed')
+			sys.stderr.write('Error connecting to server: ({0}) \n'.format(e))
+			exit(1)
 
 		print('Connection successfully established')
 
@@ -42,7 +46,6 @@ class Connection:
 
 	def send_data(self, buf):
 		self.sock.send(buf)
-		#TODO error checking
 
 	def read_bytes(self, n_bytes):
 		bytes_rcd = 0
@@ -50,7 +53,7 @@ class Connection:
 
 		while bytes_rcd < n_bytes:
 			chunk = self.sock.recv(n_bytes - bytes_rcd)
-			if chunk == b'': # socket has been closed
+			if chunk == b'':  # socket has been closed
 				raise socket.error('Socket closed suddenly')
 			chunks.append(chunk)
 			bytes_rcd += len(chunk)

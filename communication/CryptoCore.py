@@ -12,6 +12,8 @@ from Crypto.PublicKey import RSA
 def get_random_bytes(n_bytes):
 	return Random.new().read(n_bytes)
 
+block_size_AES = AES.block_size
+
 class CipherAES:
 	def __init__(self):
 		self.__key_valid = False
@@ -57,8 +59,13 @@ class CipherAES:
 
 class CipherRSA:
 	def __init__(self, public_key_file, private_key_file):
-		self.public_key = RSA.importKey(open(public_key_file).read())
-		self.private_key = RSA.importKey(open(private_key_file).read())
+		public_file = open(public_key_file)
+		self.public_key = RSA.importKey(public_file.read())
+		public_file.close()
+
+		private_file = open(private_key_file)
+		self.private_key = RSA.importKey(private_file.read())
+		private_file.close()
 
 		self.priv_cipher = PKCS1_OAEP.new(self.private_key)
 
@@ -75,4 +82,3 @@ class CipherRSA:
 	def verify(self, msg, signature):
 		h = SHA.new(msg)
 		return self.verifier.verify(h, signature)
-

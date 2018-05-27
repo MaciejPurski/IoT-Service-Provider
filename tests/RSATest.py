@@ -1,6 +1,6 @@
 #!/usr/bin/python3.6
 
-from CryptoCore import *
+from communication.CryptoCore import *
 
 
 cipher = CipherRSA('server-public.pem', 'server-private.pem')
