@@ -1,5 +1,7 @@
 #!/usr/bin/python3.6
 
+import importlib
+
 classes_dict = {
 	'DIGITAL_IN': 0x00,
 	'DIGITAL_OUT': 0x01,
@@ -9,7 +11,7 @@ classes_dict = {
 
 class Service:
 
-	def __init__(self, service_class, name, unit, min_value, max_value):
+	def __init__(self, service_class, name, unit, min_value, max_value, driver_class, config_str):
 		self.is_input = False
 		self.name = bytes(name, 'utf-8')
 		if service_class not in classes_dict:
@@ -27,11 +29,20 @@ class Service:
 		self.unit = bytes(unit, 'utf-8')
 		self.id = 0
 
+		# look for module
+		module = importlib.import_module('service.drivers.' + driver_class)
+		class_ = getattr(module, driver_class)
+		self.driver = class_(bytes(config_str, 'utf-8'))
+
 	def set_id(self, id):
 		self.id = id
 
 	def get_value(self):
-		return 0.0
+		return self.driver.read()
 
-	def set_value(self):
-		return True
+	def set_value(self, val):
+		try:
+			self.driver.write(val)
+		except Exception as e:
+			print(e)
+

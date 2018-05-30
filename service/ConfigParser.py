@@ -6,7 +6,7 @@ from collections import namedtuple
 
 class Config:
 	Device_namedtuple = namedtuple('DEVICE', 'server_ip server_port device_id server_key client_key')
-	Service_namedtuple = namedtuple('SERVICE', ' service_class name  unit min_value max_value')
+	Service_namedtuple = namedtuple('SERVICE', ' service_class name  unit min_value max_value driver_class config_str')
 
 	def __init__(self, file_name):
 		self.config = configparser.ConfigParser()
