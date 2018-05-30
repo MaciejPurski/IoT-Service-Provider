@@ -1,4 +1,4 @@
-#!/usr/bin/python3.6
+#!/usr/bin/python3
 
 from communication.ProtocolLayer import *
 from service.ConfigParser import *
