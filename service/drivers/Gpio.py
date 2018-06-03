@@ -1,5 +1,4 @@
-#import RPi.GPIO as GPIO
-
+import RPi.GPIO as GPIO
 
 class Gpio:
 	def __init__(self, config_str):
@@ -18,22 +17,24 @@ class Gpio:
 		if not self.direction in [b'IN', b'OUT']:
 			raise ValueError("Expected IN or OUT in gpios driver config")
 
-		#GPIO.setmode(GPIO.board)
-		#GPIO.setup(self.nr,  GPIO.IN if self.direction == b'IN' else GPIO.OUT)
+		GPIO.setmode(GPIO.BOARD)
+		GPIO.setup(self.nr,  GPIO.IN if self.direction == b'IN' else GPIO.OUT)
 
 	def read(self):
 		if self.direction == 'OUT':
 			print('Attempt to read from output gpio device')
 			return
 
-		return True
-			#return GPIO.input(self.nr) == GPIO.HIGH
+		return GPIO.input(self.nr) == GPIO.HIGH
 
 	def write(self, val):
 		if not isinstance(val, bool):
 			raise TypeError("Expected boolean input argument")
 
-		#GPIO.output(self.nr, GPIO.HIGH if val else GPIO.LOW)
+		GPIO.output(self.nr, GPIO.HIGH if val else GPIO.LOW)
+
+	def close(self):
+		GPIO.cleanup()
 
 
 

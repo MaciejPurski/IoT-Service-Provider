@@ -1,34 +1,30 @@
 import time
-#import pigpio
-#import wavePWM
+import RPi.GPIO as GPIO
 
 
 # requires pigpiod running in the background
 
-
 class OutputPWM:
 	def __init__(self, config_str):
-		self.gpio_nr = int(config_str)
-		if self.gpio_nr > 53:
+		args = config_str.split()
+
+		gpio_nr = int(args[0])
+		if gpio_nr > 53:
 			raise ValueError('Non existing gpio nr in PWMOutput module')
 
-		#self.pi = pigpio.pi()
-		#if not self.pi.connected:
-			#exit(0)
-		#self.pwm = wavePWM.PWM(self.pi)
+		frequency = int(args[1])
+		GPIO.setmode(GPIO.BOARD)
 
+		GPIO.setup(gpio_nr, GPIO.OUT)
+		self.pwm = GPIO.PWM(gpio_nr, frequency)
+		self.pwm.start(0)
 
 	def write(self, percentage):
 		if percentage < 0 or percentage > 100.0:
 			raise RuntimeWarning('Can\'t set value {} for PWM output module'.format(percentage))
 
-		#self.pwm.set_pulse_start_in_fraction(self.gpio_nr, 0)
-		#self.pwm.set_pulse_length_in_fraction(pin, percentage / 100.0)
-		#self.pwm.update()
-
+		self.pwm.ChangeDutyCycle(int(percentage))
 
 	def close(self):
-		pass
-		#self.pwm.cancel()
-		#self.pi.stop()
-
+		self.pwm.stop()
+		GPIO.cleanup()
