@@ -81,9 +81,9 @@ class Protocol:
 		except socket.timeout as t:
 			sys.stderr.write('Socket timeout error while receiving packet {}'.format(t))
 			exit(1)
-		except socket.errror as e:
-			exit(1)
+		except socket.error as e:
 			sys.stderr.write('Socket error while receiving packet {}'.format(e))
+			exit(1)
 
 		# encrypted
 		if packets_data[1]:
@@ -107,8 +107,9 @@ class Protocol:
 		prefix = prefix_struct.pack(initial_data_length, 0x01 if encrypt else 0x00)
 		try:
 			self.connection.send_data(prefix + packets_data)
-		except socket.errror as e:
+		except socket.error as e:
 			sys.stderr.write('Socket error while sending packet {}'.format(e))
+			exit(1)
 
 		print('Packet sent: ' + type(packet.fields).__name__)
 
