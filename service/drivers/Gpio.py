@@ -18,20 +18,23 @@ class Gpio:
 			raise ValueError("Expected IN or OUT in gpios driver config")
 
 		GPIO.setmode(GPIO.BOARD)
-		GPIO.setup(self.nr,  GPIO.IN if self.direction == b'IN' else GPIO.OUT)
+		if self.direction == b'IN':
+			GPIO.setup(self.nr, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+		else:
+			GPIO.setup(self.nr, GPIO.OUT)
 
 	def read(self):
 		if self.direction == 'OUT':
-			print('Attempt to read from output gpio device')
+			raise ValueError('Attempt to read from output gpio device')
 			return
 
-		return GPIO.input(self.nr) == GPIO.HIGH
+		return 0.0 if GPIO.input(self.nr) == GPIO.LOW else 1.0
 
 	def write(self, val):
 		if not isinstance(val, bool):
 			raise TypeError("Expected boolean input argument")
 
-		GPIO.output(self.nr, GPIO.HIGH if val else GPIO.LOW)
+		GPIO.output(self.nr, GPIO.LOW if val == 0.0 else GPIO.HIGH)
 
 	def close(self):
 		GPIO.cleanup()

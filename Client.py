@@ -38,3 +38,7 @@ try:
 except RuntimeError as e:
 	sys.stderr.write('Runtime error: {} exiting program'.format(e))
 	exit(1)
+
+
+for s in services_list:
+	s.close()
