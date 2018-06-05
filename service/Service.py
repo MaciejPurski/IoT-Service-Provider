@@ -3,10 +3,10 @@
 import importlib
 
 classes_dict = {
-	'DIGITAL_IN': 0x00,
-	'DIGITAL_OUT': 0x01,
-	'ANALOG_IN': 0x02,
-	'ANALOG_OUT': 0x03}
+	'ANALOG_IN': 0x00,
+	'ANALOG_OUT': 0x01,
+	'DIGITAL_IN': 0x02,
+	'DIGITAL_OUT': 0x03}
 
 
 class Service:
@@ -45,4 +45,7 @@ class Service:
 			self.driver.write(val)
 		except Exception as e:
 			print(e)
+			return False
+
+		return True
 

@@ -168,8 +168,15 @@ class Protocol:
 				raise RuntimeError('Wrong packet received: expected {}. got: {}'.format(type(packet).__name__, PacketSET.__name__))
 
 			# try setting the received value
-			set_success = services_list[packet.fields.service_id].set_value(packet.fields.value)
+			set_success = False
+			service_id = packet.fields.service_id
+			for service in services_list:
+				if service.id == service_id:
+					set_success = service.set_value(packet.fields.value)
+					print("set value {} on service: {} result:{}".format(packet.fields.value, service.name, set_success))
+					break
 
+			
 			if set_success:
 				self.send_packet(PacketACK.create(0), encrypt=True)
 			else:

@@ -14,7 +14,7 @@ class Connection:
 	def establish_connection(self):
 		try:
 			self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			self.sock.settimeout(5.0)
+			#self.sock.settimeout(5.0)
 			self.sock.connect((self.ip, self.port))
 		except socket.gaierror as e:
 			sys.stderr.write('Address related error connecting to server: ({0}) \n'.format(e))

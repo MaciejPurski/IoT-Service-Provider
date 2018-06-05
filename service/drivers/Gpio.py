@@ -31,9 +31,6 @@ class Gpio:
 		return 0.0 if GPIO.input(self.nr) == GPIO.LOW else 1.0
 
 	def write(self, val):
-		if not isinstance(val, bool):
-			raise TypeError("Expected boolean input argument")
-
 		GPIO.output(self.nr, GPIO.LOW if val == 0.0 else GPIO.HIGH)
 
 	def close(self):

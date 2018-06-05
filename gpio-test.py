@@ -1,12 +1,12 @@
 from service.drivers.Gpio import *
 import time
 
-g = Gpio(b'40 OUT')
-switch = Gpio(b'36 IN')
+g = Gpio(b'38 OUT')
 
 while True:
-	pressed = switch.read()
-	if pressed:
 		g.write(True)
-	else:
+		time.sleep(1)
 		g.write(False)
+		time.sleep(1)
+
+
