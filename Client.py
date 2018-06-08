@@ -33,10 +33,12 @@ try:
 	protocol.register(services_list)
 
 	while True:
-		time.sleep(4)
+		time.sleep(1)
 		protocol.transmission(services_list)
 except RuntimeError as e:
 	sys.stderr.write('Runtime error: {} exiting program'.format(e))
+	for s in services_list:
+		s.close()
 	exit(1)
 
 

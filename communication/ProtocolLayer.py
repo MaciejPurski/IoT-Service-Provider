@@ -20,7 +20,11 @@ class Protocol:
 		self.send_packet(PacketID.create(self.device_id))
 
 		# authenticate client
-		rcv_packet = self.expect_packet(PacketCHALL)
+		rcv_packet = self.parse_packet()
+		if isinstance(rcv_packet, PacketKEY):
+			return
+		elif not isinstance(rcv_packet, PacketCHALL):
+			raise RuntimeError('Wrong packet received: expected CHALLENGE, got: {}'.format(type(rcv_packet)))
 
 		# send encrypted challenge response
 		challenge_bytes = rcv_packet.fields.random_bytes
@@ -65,6 +69,7 @@ class Protocol:
 
 		if self.should_exit:
 			self.controlled_exit()
+			return
 
 		self.send_values(services_list)
 		print("Values sent")
@@ -91,7 +96,6 @@ class Protocol:
 		else:
 			packets_buf = packets_data[0]
 
-		# TODO exceptions handling
 		packet = deserialize(packets_buf)
 		print('Packet received: ' + type(packet.fields).__name__)
 		return packet
@@ -188,12 +192,10 @@ class Protocol:
 	def controlled_exit(self):
 		self.send_packet(PacketEXIT.create(0), encrypt=True)
 		self.connection.close_connection()
-		sys.exit(0)
 
 	def expect_packet(self, expected_type):
 		rcv_packet = self.parse_packet()
 		if not isinstance(rcv_packet, expected_type):
-			exit(1)
 			raise RuntimeError('Wrong packet received: expected {}. got: {}'.format(type(rcv_packet).__name__, expected_type.__name__))
 
 		return rcv_packet
